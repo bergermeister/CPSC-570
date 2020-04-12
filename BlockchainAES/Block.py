@@ -2,9 +2,10 @@ from datetime import datetime as time
 from hashlib import sha256 as sha256
 
 class Block:
-    def __init__( self, aiIndex, aiNonce, aiTarget, aoData, aiHashPrev ):
+    def __init__( self, aiIndex, aiNonce, aiTarget, aoData, aiHashPrev,
+                  aiTimestamp = int(time.utcnow().timestamp() ) ):
         self.index = aiIndex
-        self.timestamp = int(time.utcnow().timestamp())
+        self.timestamp = aiTimestamp
         self.nonce = aiNonce
         self.target = aiTarget
         self.data = aoData
@@ -24,4 +25,13 @@ class Block:
     def Mine( self, aiNonce ):
         self.nonce = aiNonce
         self.hashThis = self.Hash( )
+        
+    def Jsonify( self ):
+        return( { 'index': self.index,
+                  'timestamp': self.timestamp,
+                  'nonce': self.nonce,
+                  'target': self.target,
+                  'data': self.data,
+                  'hashPrev': self.hashPrev,
+                  'hashThis': self.hashThis } )
         

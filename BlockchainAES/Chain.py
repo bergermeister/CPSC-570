@@ -59,18 +59,23 @@ class Chain:
             blockPrev = block
             blockIndx += 1
         return( True )
-        
+    
+    def IsBlockValid( self, blockThis ):
+        blockPrev = self.Last( )
+        if( blockThis.hashPrev != blockPrev.Hash( ) ):
+            return( False )
+        digest = blockThis.Hash( )
+        targetStr = ''.zfill( blockThis.target )
+        if( blockThis.hashThis != digest ):
+            return( False )
+        if( digest[:blockThis.target] != targetStr ):
+            return( False )
+        return( True )
+    
     def List( self ):
         list = []
         for block in self.block:
-            entry = { 'index': block.index,
-                      'timestamp': block.timestamp,
-                      'nonce': block.nonce,
-                      'target': block.target,
-                      'data': block.data,
-                      'hashPrev': block.hashPrev,
-                      'hashThis': block.hashThis }    
-            list.append( entry )
+            list.append( block.Jsonify( ) )
         return( list )
     
     def AddTransaction( self, Sender, Receiver, Data ):
