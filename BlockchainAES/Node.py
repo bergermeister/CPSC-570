@@ -8,12 +8,11 @@ import json
 import numpy as np
 import os
 
-web = Flask(__name__)   # Web Application Object
-chain = Chain( )        # Blockchain Object
-id = ""                 # Unique Identifier of Node
-network = [ ]           # List of nodes in network
-networkFile = "./Network.json"
-
+web = Flask(__name__)           # Web Application Object
+chain = Chain( )                # Blockchain Object
+id = ""                         # Unique Identifier of Node
+network = [ ]                   # List of nodes in network
+networkFile = "./Network.json"  # Location to store list of nodes in network
 
 def Run( IPAddress, Port ):  
     # Generate new UUID
@@ -24,7 +23,6 @@ def Run( IPAddress, Port ):
     
     # Check if the network file exists
     if( os.path.isfile( networkFile ) and os.access( networkFile, os.R_OK ) ):
-        
         # Read Network File
         with open( networkFile, 'r' ) as file:
             data = file.read( )
@@ -81,7 +79,7 @@ def mine_block( ):
             addr = 'http://' + node[ 'hostname' ] + ':' + str( node[ 'port' ] ) + '/update_chain'
             print( f'Updating chain with {addr}' )
             try:
-                response = requests.post( addr, json=block.Jsonify( ) )
+                response = requests.post( addr, json = chain.List( ) )
                 if( ( response.status_code == 200 ) and 
                     ( response.json( )[ 'valid' ] != True ) ):
                     mined = False
@@ -100,19 +98,32 @@ def mine_block( ):
 
 @web.route('/update_chain', methods = [ 'POST' ] )
 def update_chain( ):
-    print( 'new_chain start' )
-    chain = request.get_json( )
-    print( f'Received Chain: {chain}' )
-    #blockThis = Block( blockJson[ 'index' ], 
-    #                   blockJson[ 'nonce' ], 
-    #                   blockJson[ 'target' ], 
-    #                   blockJson[ 'data' ], 
-    #                   blockJson[ 'hashPrev'],
-    #                   blockJson[ 'Timestamp' ] )
-    #chain.block.append( blockThis )
-    response = { 'message': 'Chain updated', 'chain': chain.List( ) }
-    print( 'new_chain end' )
-    return( jsonify( response ), 200 )
+    print( 'update_chain start' )
+    data = request.get_json( )
+    print( f'Received data: {data}' )
+    newChain = Chain( )
+    newChain.block = [ ]
+    for entry in data:
+        print( f'Processing entry: {entry}' )
+        index = entry[ 'index' ]
+        nonce = entry[ 'nonce' ]
+        target = entry[ 'target' ]
+        data = entry[ 'data' ]
+        hashPrev = entry[ 'hashPrev' ]
+        timestamp = entry[ 'timestamp' ]
+        newBlock = Block( index, nonce, target, data, hashPrev, timestamp )
+        newChain.block.append( newBlock )
+    print( f'Received Chain: {newChain}' )
+    updated = chain.Update( newChain )
+    if( updated ):
+        response = { 'message': 'Chain updated', 'chain': chain.List( ) }
+        code = 200
+    else:
+        response = { 'message': 'Chain not updated', 'chain': chain.List( ) }
+        code = 400
+    
+    print( 'update_chain end' )
+    return( jsonify( response ), code )
     
 # Get the full Blockchain
 @web.route('/get_chain', methods = [ 'GET' ] )

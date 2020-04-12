@@ -84,3 +84,13 @@ class Chain:
                                     'data': Data } )
         return( self.Last( ).index + 1 )
     
+    def Update( self, chain ):
+        if( ( len( chain.block ) > len( self.block ) ) and
+            ( chain.IsValid( ) ) ):
+            self.block = chain.block
+            updated = True
+        else:
+            updated = False
+        return( updated )            
+        
+        
