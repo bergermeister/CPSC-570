@@ -2,10 +2,12 @@ from datetime import datetime as time
 from hashlib import sha256 as sha256
 
 class Block:
-    def __init__( self, aiIndex, aiNonce, aiTarget, aoData, aiHashPrev,
-                  aiTimestamp = int(time.utcnow().timestamp() ) ):
+    def __init__( self, aiIndex, aiNonce, aiTarget, aoData, aiHashPrev, aiTimestamp = 0 ):
         self.index = aiIndex
-        self.timestamp = aiTimestamp
+        if( aiTimestamp == 0 ):
+            self.timestamp = int(time.utcnow().timestamp() )
+        else:
+            self.timestamp = aiTimestamp
         self.nonce = aiNonce
         self.target = aiTarget
         self.data = aoData
