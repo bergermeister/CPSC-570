@@ -1,31 +1,33 @@
 from flask import Flask, jsonify, request
 from uuid import uuid4
-from urllib.parse import urlparse
 from Crypto.Cipher import AES
+from hashlib import sha256 as sha256
 from Block import Block
 from Chain import Chain
 import requests
 import json
-import numpy as np
 import os
 
 web = Flask(__name__)           # Web Application Object
 chain = Chain( )                # Blockchain Object
 ID = ""                         # Unique Identifier of Node
-host = ""
-port = 0
+host = ""                       # Hostname/IP Address
+port = 0                        # Port Number
 network = [ ]                   # List of nodes in network
 networkFile = "./Network.json"  # Location to store list of nodes in network
-key = { 
-   "17074dd6-09e7-4f6e-a8bd-b3744d397807" : bytes.fromhex( "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F" ),
-   "ceb627d5-7ae0-42e9-a9af-9fe76d0c0298" : bytes.fromhex( "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F" ),
-   "d95da554-75f9-489e-aecb-09673803bb66" : bytes.fromhex( "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F" )
-      }
+secret = 0
+shared = { }                    # Dictionary of Node:Shared Secret pairs
+key = { }                       # Dictionary of Node:Key pairs
+#   "17074dd6-09e7-4f6e-a8bd-b3744d397807" : bytes.fromhex( "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F" ),
+#   "ceb627d5-7ae0-42e9-a9af-9fe76d0c0298" : bytes.fromhex( "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F" ),
+#   "d95da554-75f9-489e-aecb-09673803bb66" : bytes.fromhex( "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F" )
+#      }
 
-def Run( IPAddress, Port ):  
+def Run( IPAddress, Port, Secret ):  
     global ID
     global host
     global port
+    global secret
     
     # Generate new UUID
     ID = str( uuid4( ) )
@@ -34,6 +36,9 @@ def Run( IPAddress, Port ):
     host = IPAddress
     port = Port
     ep = { 'uuid' : ID, 'hostname' : IPAddress, 'port' : Port }
+    
+    # Record secret
+    secret = Secret
     
     # Check if the network file exists
     print( "Building Network List..." )
@@ -83,37 +88,60 @@ def Run( IPAddress, Port ):
     
     # Run the Web Application
     web.run( host = IPAddress, port = Port )
-        
+       
+def ProcessDHBlock( Block ):
+    try:
+        # For each transaction in the block
+        for transaction in Block.data:
+            # Read the Sender and Receiver 
+            sender = transaction[ 'sender' ]
+            receiver = transaction[ 'receiver' ]
+            
+            # Split the Data
+            parts = transaction[ 'data' ].split( ';' )
+            
+            print( f'Processing transaction: {transaction}' )
+            
+            # If this node is the receiver and this is a Diffie-Hellman Key Exchange
+            if( ( receiver == ID ) and ( len( parts ) == 3 ) ):
+                p = int( parts[ 0 ].split( '=' )[ 1 ] )
+                g = int( parts[ 1 ].split( '=' )[ 1 ] )
+                A = int( parts[ 2 ].split( '=' )[ 1 ] )
+                B = ( g ** secret ) % p
+                s = ( A ** secret ) % p
+                print( f'Processed: p={p};g={g};A={A};B={B};s={s}')
+                if( sender not in shared ):
+                   shared[ sender ] = s
+                   key[ sender ] = bytes.fromhex( sha256( str( s ).encode( ) ).hexdigest( ) )
+                   print( f'New Shared Secret = {sender}:{key[ sender ]}') 
+                   if( parts[ 2 ].startswith( 'A' ) ):
+                       chain.AddTransaction( ID, sender, f'p={p};g={g};B={B}')                
+    except:
+        print( "ERROR: Failed to parse transactions" )
+    
 # Mining a new block
 @web.route('/mine_block', methods = [ 'GET' ] )
 def mine_block( ):
-    global host
-    global port
+    global ID
     
-    print( 'mine_block start' )
+    # Mine a new block
     block = chain.Mine( 4 )
+    
+    # Check for Diffie-Hellman Blocks
+    ProcessDHBlock( block )
+        
     print( 'Block mined' )
-    mined = True
     for node in network:
-        if( ( node[ 'hostname' ] != host ) or 
-            ( node[ 'port' ] != port ) ):
+        if( node[ 'uuid' ] != ID ):
             addr = 'http://' + node[ 'hostname' ] + ':' + str( node[ 'port' ] ) + '/update_chain'
             print( f'Updating chain with {addr}' )
             try:
                 response = requests.post( addr, json = chain.List( ) )
-                if( ( response.status_code == 200 ) and 
-                    ( response.json( )[ 'valid' ] != True ) ):
-                    mined = False
             except:
                 print( f'Could not connect to {addr}' )
                 
-    if( mined == True ):   
-        response = { 'message': 'Block mined successfully',       
-                     'block' : block.Jsonify( ) }
-    else:
-        response = { 'message': 'Block mining failed' }
-        
-    print( 'mine_block end' )
+    response = { 'message': 'Block mined successfully',       
+                 'block' : block.Jsonify( ) }
     
     return( jsonify( response ), 200 )
 
@@ -137,6 +165,9 @@ def update_chain( ):
     print( f'Received Chain: {newChain}' )
     updated = chain.Update( newChain )
     if( updated ):
+        # Check for Diffie-Hellman Blocks
+        for block in chain.block:
+            ProcessDHBlock( block )
         response = { 'message': 'Chain updated', 'chain': chain.List( ) }
         code = 200
     else:
@@ -174,6 +205,22 @@ def add_transaction():
     response = {'message': f'This transaction will be added to Block {index}'}
     return jsonify(response), 201
 
+@web.route('/add_dh_transaction', methods = ['POST'])
+def add_dh_transaction():
+    json = request.get_json()
+    transactionKeys = [ 'p', 'g', 'receiver' ]
+    if not all(key in json for key in transactionKeys):
+        return 'Some elements of the transaction are missing', 
+    p = json[ 'p' ]
+    g = json[ 'g' ]
+    A = ( g ** secret ) % p
+    chain.AddTransaction( ID, json[ 'receiver' ], f'p={p};g={g};A={A}' )
+    transaction = { 'sender' : ID, 'receiver' : json[ 'receiver' ],
+                    'data' : f'p={p};g={g};A={A}' }
+    response = { 'message' : 'Transaction created',
+                 'transaction' : transaction }
+    return( jsonify( response ), 201 )
+
 @web.route( '/add_encrypted_transaction', methods = ['POST'] )
 def add_encrypted_transaction():
     json = request.get_json()
@@ -198,6 +245,12 @@ def add_encrypted_transaction():
         response = { 'message' : 'Failed to add transaction to pool' }
         code = 400
     return( jsonify( response ), code ) 
+
+@web.route( '/get_pending_transactions', methods = ['GET'] )
+def get_pending_transactions( ):
+    response = { 'message' : f'Pending Transactions in {ID}',
+                 'transactions' : chain.transactions }
+    return( jsonify( response ), 200 )
 
 @web.route( '/get_transactions', methods = ['GET'] )
 def get_transactions( ):

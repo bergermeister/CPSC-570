@@ -23,6 +23,13 @@ Supported methods:
 		"receiver": "ID",
 		"data": "p=23;g=5;A=4"
 	}
+(POST) hostname:port/add_dh_transaction
+	JSON Body;
+	{
+		"p" : 23,
+		"g": 5, 
+		"receiver" : "ceb627d5-7ae0-42e9-a9af-9fe76d0c0298"
+	}
 (POST) hostname:port/add_encrypted_transaction
 {
 	"sender" : "17074dd6-09e7-4f6e-a8bd-b3744d397807",
@@ -35,4 +42,26 @@ Supported methods:
 (GET) hostname:port/get_chain
 (GET) hostname:port/is_valid
 
-
+In order to test the Diffie-Hellman Key Exchange and Encrypted Data Exchange,
+execute the following commands:
+(POST)  http://127.0.01:5000/add_dh_transaction
+{
+	"p" : 23,
+	"g": 5, 
+	"receiver" : "ceb627d5-7ae0-42e9-a9af-9fe76d0c0298"
+}
+(GET)  http://127.0.0.1:5000/mine_block
+(GET)  http://127.0.0.1:5001/mine_block
+(POST) http://127.0.0.1:5000/add_encrypted_transaction
+{
+	"sender" : "17074dd6-09e7-4f6e-a8bd-b3744d397807",
+	"receiver" : "ceb627d5-7ae0-42e9-a9af-9fe76d0c0298",
+	"data" : "Example of sensitive information to encrypt"
+}
+(GET)  http://127.0.0.1:5000/mine_block
+(GET)  http://127.0.0.1:5000/get_transactions
+(GET)  http://127.0.0.1:5001/get_transactions
+(GET)  http://127.0.0.1:5002/get_transactions
+(GET)  http://127.0.0.1:5000/get_decrypted_transactions
+(GET)  http://127.0.0.1:5001/get_decrypted_transactions
+(GET)  http://127.0.0.1:5002/get_decrypted_transactions
