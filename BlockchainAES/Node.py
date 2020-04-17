@@ -16,7 +16,7 @@ host = ""
 port = 0
 network = [ ]                   # List of nodes in network
 networkFile = "./Network.json"  # Location to store list of nodes in network
-key = {
+key = { 
    "17074dd6-09e7-4f6e-a8bd-b3744d397807" : bytes.fromhex( "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F" ),
    "ceb627d5-7ae0-42e9-a9af-9fe76d0c0298" : bytes.fromhex( "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F" ),
    "d95da554-75f9-489e-aecb-09673803bb66" : bytes.fromhex( "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F" )
@@ -201,39 +201,53 @@ def add_encrypted_transaction():
 
 @web.route( '/get_transactions', methods = ['GET'] )
 def get_transactions( ):
-    data = [ ]
+    # Creat an empty list of transactions
+    transactions = [ ]
+    
+    # For each block in the blockchain
     for block in chain.block:
+        # For each transaction in the block
         for transaction in block.data:
-            if( ( transaction[ 'sender' ] == ID ) or ( transaction[ 'receiver' ] == ID ) ):
-                data.append( transaction )
+            # Append the transaction to the list of total transactions
+            transactions.append( transaction.copy( ) ) 
 
     response = { 'message' : f'Transactions for {ID}',
-                 'transactions' : data }
+                 'transactions' : transactions }
     return( jsonify( response ), 200 )
 
 @web.route( '/get_decrypted_transactions', methods = ['GET'] )
 def get_decrypted_transactions( ):
-    data = [ ]
+    # Creat an empty list of transactions
+    transactions = [ ]
+    
+    # For each block in the blockchain
     for block in chain.block:
+        # For each transaction in the block
         for transaction in block.data:
+            # Append the transaction to the list of total transactions
+            transactions.append( transaction.copy( ) ) 
+            
+            # Read the sender and receiver UUIDs
             sender = transaction[ 'sender' ]
             receiver = transaction[ 'receiver' ]
-            if( transaction[ 'sender' ] == ID ):
-                data.append( transaction.copy( ) )   
-                if( transaction[ 'data' ].startswith( "AES-" ) ):
+            
+            # If the transaction is encrypted (Starts with AES-)
+            if( transaction[ 'data' ].startswith( "AES-" ) ):
+                # If this node has the key
+                if( ( sender == ID ) and ( receiver in key ) ):
+                    # Decrypt the data and update the list of total transactions
                     cipher = AES.new( key[ receiver ] )
                     plaintext = cipher.decrypt( bytes.fromhex( transaction[ 'data' ][ 4: ] ) )
-                    data[ - 1 ][ 'data' ] = plaintext.decode( )
-            elif( transaction[ 'receiver' ] == ID ):
-                data.append( transaction )
-                if( transaction[ 'data' ].startswith( "AES-" ) ):
+                    transactions[ -1 ][ 'data' ] = plaintext.decode( )
+                # If this node has the key
+                elif( ( receiver == ID ) and ( sender in key ) ):
+                    # Decrypt the data and update the list of total transactions
                     cipher = AES.new( key[ sender ] )
                     plaintext = cipher.decrypt( bytes.fromhex( transaction[ 'data' ][ 4: ] ) )
-                    data[ - 1 ][ 'data' ] = plaintext.decode( )
+                    transactions[ -1 ][ 'data' ] = plaintext.decode( )
                     
-
     response = { 'message' : f'Decrypted Transactions for {ID}',
-                 'transactions' : data }
+                 'transactions' : transactions }
     return( jsonify( response ), 200 )
 
 # Connecting new nodes

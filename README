@@ -1,6 +1,6 @@
 CPSC-570 Blockchain and Cryptocurrency Project 2
 BlockchainAES
-This project implements a simple project which allows users to share data encrypted via
+This project implements a simple blockchain which allows users to share data encrypted via
 AES-256. Users exchange shared secrets via Diffie-Hellman Key Exchange across 2 or more
 blocks in the chain. After this process, Users are able to use the shared secret to 
 encrypt and decrypt data with trusted parties.
@@ -12,18 +12,27 @@ Node.Run( 'hostname', 5000 )
 Node0, Node1, and Node2 can be run to host nodes on LocalHost at ports 5000, 5001, and
 5002 respectively.
 
-Each nodes hosts a web interface which can be interacted with via a web browser or an
+Each node hosts a web interface which can be interacted with via a web browser or an
 application such as Postman.
 
 Supported methods:
-(GET) hostname:port/get_chain
-(GET) hostname:port/is_valid
-(GET) hostname:port/mine_block
 (POST) hostname:port/add_transaction
 	JSON Body:
 	{
 		"sender": "ID",
 		"receiver": "ID",
-		"data": "Data"
+		"data": "p=23;g=5;A=4"
 	}
-	
+(POST) hostname:port/add_encrypted_transaction
+{
+	"sender" : "17074dd6-09e7-4f6e-a8bd-b3744d397807",
+	"receiver" : "ceb627d5-7ae0-42e9-a9af-9fe76d0c0298",
+	"data" : "Example data"
+}
+(GET) hostname:port/mine_block
+(GET) hostname:port/get_transactions
+(GET) hostname:port/get_decrypted_transactions
+(GET) hostname:port/get_chain
+(GET) hostname:port/is_valid
+
+
