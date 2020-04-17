@@ -10,16 +10,24 @@ import os
 
 web = Flask(__name__)           # Web Application Object
 chain = Chain( )                # Blockchain Object
-id = ""                         # Unique Identifier of Node
+ID = ""                         # Unique Identifier of Node
+host = ""
+port = 0
 network = [ ]                   # List of nodes in network
 networkFile = "./Network.json"  # Location to store list of nodes in network
 
 def Run( IPAddress, Port ):  
+    global ID
+    global host
+    global port
+    
     # Generate new UUID
-    id = str( uuid4( ) )
+    ID = str( uuid4( ) )
     
     # Create the Endpoint
-    ep = { 'uuid' : id, 'hostname' : IPAddress, 'port' : Port }
+    host = IPAddress
+    port = Port
+    ep = { 'uuid' : ID, 'hostname' : IPAddress, 'port' : Port }
     
     # Check if the network file exists
     if( os.path.isfile( networkFile ) and os.access( networkFile, os.R_OK ) ):
@@ -38,7 +46,8 @@ def Run( IPAddress, Port ):
             if( ( node[ 'hostname' ] == IPAddress ) and 
                 ( node[ 'port' ] == Port ) ):
                 # If node is found, update the UUID
-                node[ 'uuid' ] = id
+                ID = node[ 'uuid' ]
+                ep[ 'uuid' ] = ID
                 found = True
             else:
                 addr = 'http://' + node[ 'hostname' ] + ':' + str( node[ 'port' ] ) + '/connect_node'
@@ -70,12 +79,16 @@ def Run( IPAddress, Port ):
 # Mining a new block
 @web.route('/mine_block', methods = [ 'GET' ] )
 def mine_block( ):
+    global host
+    global port
+    
     print( 'mine_block start' )
     block = chain.Mine( 4 )
     print( 'Block mined' )
     mined = True
     for node in network:
-        if( node[ 'uuid' ] != id ):
+        if( ( node[ 'hostname' ] != host ) or 
+            ( node[ 'port' ] != port ) ):
             addr = 'http://' + node[ 'hostname' ] + ':' + str( node[ 'port' ] ) + '/update_chain'
             print( f'Updating chain with {addr}' )
             try:
@@ -152,6 +165,14 @@ def add_transaction():
     index = chain.AddTransaction(json['sender'], json['receiver'], json['data'])
     response = {'message': f'This transaction will be added to Block {index}'}
     return jsonify(response), 201
+
+@web.route( '/add_encrypted_transaction', methods = ['POST'] )
+def add_encrypted_transaction():
+    return 
+
+@web.route( '/decrypt_block', methods = ['POST'] )
+def decrypt_block():
+    return
 
 # Connecting new nodes
 @web.route('/connect_node', methods = ['POST'])
