@@ -65,3 +65,6 @@ execute the following commands:
 (GET)  http://127.0.0.1:5000/get_decrypted_transactions
 (GET)  http://127.0.0.1:5001/get_decrypted_transactions
 (GET)  http://127.0.0.1:5002/get_decrypted_transactions
+
+Example Postman Collection:
+https://www.getpostman.com/collections/6660a595177448092910
