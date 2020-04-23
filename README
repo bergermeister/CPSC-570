@@ -68,3 +68,48 @@ execute the following commands:
 
 Example Postman Collection:
 https://www.getpostman.com/collections/6660a595177448092910
+
+=======================================================================
+SmartContract
+=======================================================================
+Python
+-----------------------------------------------------------------------
+runfile('E:/Projects/CPSC-570/SmartContract/DiffieHellmanAES.py', wdir='E:/Projects/CPSC-570/SmartContract')
+
+dh = DiffieHellmanAES( 23, 5, 4, 3 )
+
+dh.GetA( )
+Out[3]: 4
+
+dh.GetB( )
+Out[4]: 10
+
+dh.Encrypt( "Hello World!" )
+Out[5]: '63ce86ddea18b9cb2c9756aff3994e6d'
+
+dh.Decrypt( '63ce86ddea18b9cb2c9756aff3994e6d' )
+Out[6]: b'Hello World!~~~~'
+
+-----------------------------------------------------------------------
+Environment
+-----------------------------------------------------------------------
+ 1. Run Ganache - Quickstart Workspace
+ 2. Open etherwallet-v3.40.0/index.html in chrome
+ 3. Add custom Network/Node in etherwallet
+ 	- Use IP Address and Port from Ganache workspace
+ 4. Compile SmartContract (*.sol) in Solidity
+ 	- http://remix.ethereum.org/
+ 5. Copy Bytecode from Solidity
+ 6. Pase Bytecode into Etherwallet > Contracts > Deploy Contract > Byte Code
+ 	- Gas Limit will be automatically calculated, otherwise something is wrong in Bytecode
+	- Paste Bytecode into Notepad++ first, then copy just the contents of the value for object
+		(Everything between "")
+ 7. Sign Transaction using Private Key from Ganache
+ 8. Copy Contract Address from Ganache > Transactions > CONTRACT CREATION transaction
+ 9. Paste into Etherwallet > Contracts > Interact with Contract > Contract Address
+10. Copy ABI from Solidity
+11. Paste into Etherwallet > Contracts > Interact with Contract > ABI/JSON Interface
+12. Click Access
+	
+
+
